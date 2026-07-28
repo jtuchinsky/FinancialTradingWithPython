@@ -1,25 +1,43 @@
-"""Interactively scaffold a lesson under lessons/.
+"""Interactively scaffold a chapter/topic under lessons/.
 
-Creates:
-    lessons/<NN>-<slug>/README.md
-    lessons/<NN>-<slug>/<MM>-<slug>/README.md   (one per sublesson you enter)
+Creates, matching the repo layout:
+    lessons/Chapter<N> - <Name>/Topic <M> - <Title>/Notes.md
+    lessons/Chapter<N> - <Name>/Topic <M> - <Title>/Exercises.ipynb
 
-Both lessons and sublessons use a zero-padded, ordered prefix (e.g.
-01-trading-basics/03-plot-a-candlestick-chart) to match the course structure.
-Re-running for an existing lesson number appends new sublessons, continuing the
-numbering.
+Only *video* exercises get a Topic folder (that is the convention here). Re-running
+for an existing chapter number appends new topics, continuing the numbering. Existing
+files are never overwritten.
 
 Run with:  uv run new_lesson.py   (or: python new_lesson.py)
 """
 
+import json
 import re
 from pathlib import Path
 
 LESSONS_DIR = Path(__file__).parent / "lessons"
 
+# Setup cell shared by every generated Exercises.ipynb — finds the data folder no
+# matter where the kernel runs from (notebooks run from their own nested folder).
+SETUP_CELL = '''\
+from pathlib import Path
+import pandas as pd
+import matplotlib.pyplot as plt
 
-def slugify(text: str) -> str:
-    return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
+# Locate the project's data folder regardless of where this notebook runs from
+DATA = next(p / "course materials" / "data"
+            for p in [Path.cwd(), *Path.cwd().parents]
+            if (p / "course materials" / "data").is_dir())
+
+def load(name):
+    """Load an OHLCV CSV with a parsed DatetimeIndex."""
+    return pd.read_csv(DATA / name, index_col="Date", parse_dates=True)
+'''
+
+
+def sanitize(name: str) -> str:
+    """Make a title safe for a directory name (drop path-hostile characters)."""
+    return re.sub(r"\s+", " ", re.sub(r"[:/\\]", " ", name)).strip()
 
 
 def prompt_number(label: str) -> int:
@@ -38,20 +56,20 @@ def prompt_title(label: str) -> str:
         print("  Title cannot be empty.")
 
 
-def prompt_sublessons() -> list[str]:
+def prompt_topics() -> list[str]:
     titles: list[str] = []
-    print("Enter sublesson titles one per line (blank line to finish):")
+    print("Enter topic (video) titles one per line (blank line to finish):")
     while True:
-        title = input("  Sublesson: ").strip()
+        title = input("  Topic: ").strip()
         if not title:
             break
         titles.append(title)
     return titles
 
 
-def find_lesson_dir(number: int) -> Path | None:
-    """Return an existing lessons/<NN>-* dir for this number, if any."""
-    prefix = f"{number:02d}-"
+def find_chapter_dir(number: int) -> Path | None:
+    """Return an existing 'Chapter<N> - *' dir, if any."""
+    prefix = f"Chapter{number} - "
     if LESSONS_DIR.exists():
         for child in LESSONS_DIR.iterdir():
             if child.is_dir() and child.name.startswith(prefix):
@@ -59,47 +77,74 @@ def find_lesson_dir(number: int) -> Path | None:
     return None
 
 
-def next_index(lesson_dir: Path) -> int:
-    """Highest existing NN- prefix inside the lesson dir, plus one."""
+def next_topic_index(chapter_dir: Path) -> int:
+    """Highest existing 'Topic <n> - ' index in the chapter, plus one."""
     highest = 0
-    for child in lesson_dir.iterdir():
-        m = re.match(r"(\d+)-", child.name)
+    for child in chapter_dir.iterdir():
+        m = re.match(r"Topic (\d+) - ", child.name)
         if child.is_dir() and m:
             highest = max(highest, int(m.group(1)))
     return highest + 1
 
 
-def create_lesson(number: int, title: str, sublessons: list[str]) -> None:
-    lesson_dir = find_lesson_dir(number)
-    if lesson_dir is not None:
-        print(f"\n'{lesson_dir}' already exists — adding to it.")
+def exercises_notebook(title: str) -> str:
+    """Minimal but runnable Exercises.ipynb (title cell + setup cell)."""
+    nb = {
+        "cells": [
+            {"cell_type": "markdown", "id": "title", "metadata": {},
+             "source": f"# Exercises — {title}\n\nSee `Notes.md` in this folder for the summary."},
+            {"cell_type": "code", "id": "setup", "metadata": {}, "execution_count": None,
+             "outputs": [], "source": SETUP_CELL},
+            {"cell_type": "code", "id": "work", "metadata": {}, "execution_count": None,
+             "outputs": [], "source": "# Your work here\n"},
+        ],
+        "metadata": {
+            "kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
+            "language_info": {"name": "python"},
+        },
+        "nbformat": 4,
+        "nbformat_minor": 5,
+    }
+    return json.dumps(nb, indent=1)
+
+
+def create(number: int, name: str, topics: list[str]) -> None:
+    chapter_dir = find_chapter_dir(number)
+    if chapter_dir is not None:
+        print(f"\n'{chapter_dir.name}' already exists — adding to it.")
     else:
-        lesson_dir = LESSONS_DIR / f"{number:02d}-{slugify(title)}"
-    lesson_dir.mkdir(parents=True, exist_ok=True)
+        chapter_dir = LESSONS_DIR / f"Chapter{number} - {sanitize(name)}"
+    chapter_dir.mkdir(parents=True, exist_ok=True)
 
-    readme = lesson_dir / "README.md"
-    if not readme.exists():
-        readme.write_text(f"# {number}. {title}\n")
+    created = []
+    index = next_topic_index(chapter_dir)
+    for offset, topic_title in enumerate(topics):
+        m = index + offset
+        topic_dir = chapter_dir / f"Topic {m} - {sanitize(topic_title)}"
+        topic_dir.mkdir(parents=True, exist_ok=True)
 
-    created = [str(readme.relative_to(LESSONS_DIR.parent))]
-    index = next_index(lesson_dir)
-    for offset, sub_title in enumerate(sublessons):
-        n = index + offset
-        sub_dir = lesson_dir / f"{n:02d}-{slugify(sub_title)}"
-        sub_dir.mkdir(parents=True, exist_ok=True)
-        (sub_dir / "README.md").write_text(f"# {n}. {sub_title}\n")
-        created.append(str(sub_dir.relative_to(LESSONS_DIR.parent)) + "/")
+        notes = topic_dir / "Notes.md"
+        if not notes.exists():
+            notes.write_text(f"# Topic {m} — {topic_title}\n")
+            created.append(notes)
+
+        nb = topic_dir / "Exercises.ipynb"
+        if not nb.exists():
+            nb.write_text(exercises_notebook(topic_title))
+            created.append(nb)
 
     print("\nCreated:")
+    if not created:
+        print("  (nothing new — files already existed)")
     for path in created:
-        print(f"  {path}")
+        print(f"  {path.relative_to(LESSONS_DIR.parent)}")
 
 
 def main() -> None:
-    number = prompt_number("Lesson")
-    title = prompt_title("Lesson")
-    sublessons = prompt_sublessons()
-    create_lesson(number, title, sublessons)
+    number = prompt_number("Chapter")
+    name = prompt_title("Chapter")
+    topics = prompt_topics()
+    create(number, name, topics)
 
 
 if __name__ == "__main__":

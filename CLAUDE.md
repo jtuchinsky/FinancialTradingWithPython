@@ -4,53 +4,72 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Workspace for following DataCamp's **Financial Trading with Python** course. It is a
-`uv`-initialized Python project. Course work lives under `lessons/`, and the source material is in
-`course materials/`.
+Workspace for working through DataCamp's **Financial Trading in Python** course. `uv`-managed Python
+project. Study notes and runnable exercises live under `lessons/`, the full syllabus is in
+[`Course Structure.md`](Course%20Structure.md), and source material (the chapter PDF and price-data
+CSVs) is in `course materials/`.
 
 ## Lessons layout
 
-Course content is mirrored under `lessons/` as **lessons** (chapters) containing **sublessons**
-(exercises). Both levels use a zero-padded, ordered `NN-slug` directory name and carry a `README.md`
-whose heading is `# N. Title`:
+`lessons/` is organized by **chapter** and **topic**, with human-readable directory names:
 
 ```
 lessons/
-└── 01-trading-basics/            # lesson (chapter)
-    ├── README.md                 # "# 1. Trading Basics"
-    ├── 01-what-is-financial-trading/
-    │   └── README.md             # "# 1. What is financial trading"
-    └── 03-plot-a-time-series-line-chart/
-        └── README.md
+└── Chapter1 - Trading Basics/                 # one dir per course chapter
+    ├── Topic 1 - What is financial trading/   # one dir per *video* exercise
+    │   ├── Notes.md          # lecture summary, formulas, talib/bt code, embedded charts
+    │   ├── Exercises.ipynb   # runnable talib/bt starter code against the local CSVs
+    │   └── *.png             # charts generated from course materials/data
+    └── Topic 2 - Financial trading with bt/
+        └── ...
 ```
 
-### Adding a lesson or sublesson
+- A **Topic N** folder exists only for a chapter's **video** exercises, numbered sequentially per
+  chapter (e.g. Chapter 2's videos at course-exercises 1/4/8/12 become Topics 1–4). Coding /
+  multiple-choice / matching exercises are not scaffolded. `Course Structure.md` lists every exercise
+  and marks which are videos (and their Topic number).
+- Chart PNGs are generated from the CSVs in `course materials/data/` using **TA-Lib** indicators and
+  **bt** backtests, then embedded in each `Notes.md`.
 
-Use the interactive helper — don't hand-create the directories, so numbering and slugs stay
-consistent:
+### Adding a chapter or topic
+
+Use the interactive helper so names and numbering stay consistent — don't hand-create the dirs:
 
 ```
 uv run new_lesson.py
 ```
 
-It prompts for a lesson number + title, then sublesson titles (one per line, blank to finish), and
-creates `lessons/<NN>-<slug>/README.md` plus a `<MM>-<slug>/README.md` per sublesson. Re-running with
-an **existing** lesson number appends new sublessons, continuing the numbering from the highest
-existing prefix (it never overwrites an existing `README.md`).
+It prompts for a chapter number + name, then topic titles (one per line, blank to finish), and
+creates `lessons/Chapter<N> - <Name>/Topic <M> - <Title>/` with a `Notes.md` and a starter
+`Exercises.ipynb` in each. Re-running with an existing chapter number appends topics, continuing the
+numbering (it never overwrites existing files).
+
+## Data & notebooks
+
+- Price data: `course materials/data/{AMZN,GOOG,TSLA}-stock-data.csv` (OHLCV + Adj Close, 2015–2020)
+  and `Bitcoin-price-data.csv` (OHLCV, 2016–2020).
+- Notebooks run with the kernel's working directory set to the **notebook's own folder** (deeply
+  nested under `lessons/`), not the project root. Each `Exercises.ipynb` therefore finds data by
+  walking up from `Path.cwd()` to locate `course materials/data/` rather than using a fixed relative
+  path — reuse that `load()` helper in new cells instead of hard-coding a path.
 
 ## Toolchain
 
-Managed with [`uv`](https://docs.astral.sh/uv/) (v0.11.x), Python pinned to 3.11 via `.python-version`.
-Dependencies live in `pyproject.toml` (`[project].dependencies`, currently empty) — there is no
-`uv.lock` yet; the first `uv add` / `uv sync` creates one.
+Managed with [`uv`](https://docs.astral.sh/uv/); Python pinned to 3.11 via `.python-version`.
+Dependencies (`pyproject.toml`): `pandas`, `matplotlib`, `plotly`, `ta-lib`, `bt`, `jupyterlab`.
+
+- **TA-Lib** needs its native C library installed first: `brew install ta-lib` (the `ta-lib` Python
+  wheel links against it).
+- **bt** pulls in `ffn`/`yfinance`; `bt.get(...)` downloads from Yahoo Finance and needs network. The
+  generated charts and notebooks instead feed `bt` the local CSVs, so they run offline and
+  deterministically.
 
 ## Commands
 
-- Run: `uv run main.py` (or `uv run python main.py`)
-- Add a dependency: `uv add <package>` — prefer this over editing `pyproject.toml` by hand; it
-  resolves and writes `uv.lock`
-- Sync the environment from the lockfile: `uv sync`
+- Add a dependency: `uv add <package>` (resolves and writes `uv.lock`)
+- Sync the env from the lockfile: `uv sync`
+- Launch Jupyter: `uv run jupyter lab`
+- Run a notebook headless: `uv run jupyter nbconvert --to notebook --execute "<path>/Exercises.ipynb"`
 - Ad-hoc Python in the project env: `uv run python -c "..."`
 
-No test runner, linter, or formatter is configured yet. If adding tests, `uv add --dev pytest` and
-run with `uv run pytest` (a single test: `uv run pytest path/to/test.py::test_name`).
+No test runner, linter, or formatter is configured.
