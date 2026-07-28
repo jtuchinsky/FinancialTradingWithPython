@@ -9,5 +9,6 @@ dependencies = [
     "jupyterlab>=4.6.2",
     "matplotlib>=3.11.1",
     "pandas>=3.0.5",
+    "plotly>=6.9.0",
     "ta-lib>=0.7.1",
 ]
