@@ -1,1 +1,0 @@
-# 3. Trading Strategies
