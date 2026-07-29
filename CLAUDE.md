@@ -18,16 +18,24 @@ lessons/
 └── Chapter1 - Trading Basics/                 # one dir per course chapter
     ├── Topic 1 - What is financial trading/   # one dir per *video* exercise
     │   ├── Notes.md          # lecture summary, formulas, talib/bt code, embedded charts
-    │   ├── Exercises.ipynb   # runnable talib/bt starter code against the local CSVs
+    │   ├── Exercises.ipynb   # setup + runnable examples + the section's coding exercises
     │   └── *.png             # charts generated from course materials/data
-    └── Topic 2 - Financial trading with bt/
+    ├── Topic 2 - Getting familiar with your trading data/
+    │   └── ...
+    └── Topic 3 - Financial trading with bt/
         └── ...
 ```
 
 - A **Topic N** folder exists only for a chapter's **video** exercises, numbered sequentially per
-  chapter (e.g. Chapter 2's videos at course-exercises 1/4/8/12 become Topics 1–4). Coding /
-  multiple-choice / matching exercises are not scaffolded. `Course Structure.md` lists every exercise
-  and marks which are videos (and their Topic number).
+  chapter (e.g. Chapter 1's videos at course-exercises 1/5/9 are Topics 1–3). Multiple-choice /
+  matching exercises get no folder. `Course Structure.md` lists every exercise and marks which are
+  videos (and their Topic number).
+- A video's **section** is the run of exercises from that video until the next video. Each
+  `Exercises.ipynb` ends with a **"Coding exercises in this section"** part: for every coding
+  exercise in that section, a markdown cell with the DataCamp description and a code cell holding the
+  exercise's `script.py` (blanks `____` as shown). Where the multi-step `script.py` couldn't be
+  retrieved reliably, the code cell is a placeholder to paste the editor code into — never
+  fabricated.
 - Chart PNGs are generated from the CSVs in `course materials/data/` using **TA-Lib** indicators and
   **bt** backtests, then embedded in each `Notes.md`.
 
@@ -39,10 +47,12 @@ Use the interactive helper so names and numbering stay consistent — don't hand
 uv run new_lesson.py
 ```
 
-It prompts for a chapter number + name, then topic titles (one per line, blank to finish), and
-creates `lessons/Chapter<N> - <Name>/Topic <M> - <Title>/` with a `Notes.md` and a starter
-`Exercises.ipynb` in each. Re-running with an existing chapter number appends topics, continuing the
-numbering (it never overwrites existing files).
+It prompts for a chapter number + name, then each topic title and that topic's coding exercises
+(entered as `N. Title`, blank to finish). For every topic it creates
+`lessons/Chapter<N> - <Name>/Topic <M> - <Title>/` with a `Notes.md` and an `Exercises.ipynb`
+(title + setup cell + a "Coding exercises in this section" block with a description/`script.py`
+placeholder per coding exercise you named). Re-running with an existing chapter number appends
+topics, continuing the numbering (it never overwrites existing files).
 
 ## Data & notebooks
 

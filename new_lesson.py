@@ -4,9 +4,12 @@ Creates, matching the repo layout:
     lessons/Chapter<N> - <Name>/Topic <M> - <Title>/Notes.md
     lessons/Chapter<N> - <Name>/Topic <M> - <Title>/Exercises.ipynb
 
-Only *video* exercises get a Topic folder (that is the convention here). Re-running
-for an existing chapter number appends new topics, continuing the numbering. Existing
-files are never overwritten.
+Only *video* exercises get a Topic folder (that is the convention here). Each topic's
+Exercises.ipynb gets a title cell, a setup cell, and — for every coding exercise you
+name in that video's section — a description cell plus a script.py placeholder cell.
+
+Re-running for an existing chapter number appends new topics, continuing the numbering.
+Existing files are never overwritten.
 
 Run with:  uv run new_lesson.py   (or: python new_lesson.py)
 """
@@ -56,15 +59,23 @@ def prompt_title(label: str) -> str:
         print("  Title cannot be empty.")
 
 
-def prompt_topics() -> list[str]:
-    titles: list[str] = []
-    print("Enter topic (video) titles one per line (blank line to finish):")
+def prompt_topics() -> list[tuple[str, list[str]]]:
+    """Return a list of (topic_title, [coding exercise entries])."""
+    topics: list[tuple[str, list[str]]] = []
+    print("Enter topics (videos). Blank topic title to finish.")
     while True:
-        title = input("  Topic: ").strip()
+        title = input("  Topic title: ").strip()
         if not title:
             break
-        titles.append(title)
-    return titles
+        codings: list[str] = []
+        print(f"    Coding exercises for '{title}' as 'N. Title' (blank to finish):")
+        while True:
+            entry = input("      Coding exercise: ").strip()
+            if not entry:
+                break
+            codings.append(entry)
+        topics.append((title, codings))
+    return topics
 
 
 def find_chapter_dir(number: int) -> Path | None:
@@ -87,17 +98,37 @@ def next_topic_index(chapter_dir: Path) -> int:
     return highest + 1
 
 
-def exercises_notebook(title: str) -> str:
-    """Minimal but runnable Exercises.ipynb (title cell + setup cell)."""
+def _cell(cell_type, cid, source):
+    cell = {"cell_type": cell_type, "id": cid, "metadata": {}, "source": source}
+    if cell_type == "code":
+        cell["execution_count"] = None
+        cell["outputs"] = []
+    return cell
+
+
+def exercises_notebook(title: str, codings: list[str]) -> str:
+    """Exercises.ipynb: title + setup, then a coding-exercises section for `codings`."""
+    cells = [
+        _cell("markdown", "title",
+              f"# Exercises — {title}\n\nSee `Notes.md` in this folder for the summary."),
+        _cell("code", "setup", SETUP_CELL),
+        _cell("code", "work", "# Your work here\n"),
+    ]
+    if codings:
+        nums = ", ".join(re.match(r"\s*(\d+)", c).group(1) for c in codings
+                         if re.match(r"\s*(\d+)", c))
+        note = ("---\n\n## Coding exercises in this section\n\n"
+                "One markdown + code cell per coding exercise under this video"
+                + (f" (course exercises {nums})" if nums else "")
+                + ". Paste each exercise's description and `script.py` from the DataCamp editor.")
+        cells.append(_cell("markdown", "coding-note", note))
+        for i, entry in enumerate(codings):
+            cells.append(_cell("markdown", f"ex-{i}-md",
+                               f"### {entry}\n\n_Paste the exercise description here._"))
+            cells.append(_cell("code", f"ex-{i}-code",
+                               "# Paste the script.py for this exercise from the DataCamp editor.\n"))
     nb = {
-        "cells": [
-            {"cell_type": "markdown", "id": "title", "metadata": {},
-             "source": f"# Exercises — {title}\n\nSee `Notes.md` in this folder for the summary."},
-            {"cell_type": "code", "id": "setup", "metadata": {}, "execution_count": None,
-             "outputs": [], "source": SETUP_CELL},
-            {"cell_type": "code", "id": "work", "metadata": {}, "execution_count": None,
-             "outputs": [], "source": "# Your work here\n"},
-        ],
+        "cells": cells,
         "metadata": {
             "kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
             "language_info": {"name": "python"},
@@ -108,7 +139,7 @@ def exercises_notebook(title: str) -> str:
     return json.dumps(nb, indent=1)
 
 
-def create(number: int, name: str, topics: list[str]) -> None:
+def create(number: int, name: str, topics: list[tuple[str, list[str]]]) -> None:
     chapter_dir = find_chapter_dir(number)
     if chapter_dir is not None:
         print(f"\n'{chapter_dir.name}' already exists — adding to it.")
@@ -118,7 +149,7 @@ def create(number: int, name: str, topics: list[str]) -> None:
 
     created = []
     index = next_topic_index(chapter_dir)
-    for offset, topic_title in enumerate(topics):
+    for offset, (topic_title, codings) in enumerate(topics):
         m = index + offset
         topic_dir = chapter_dir / f"Topic {m} - {sanitize(topic_title)}"
         topic_dir.mkdir(parents=True, exist_ok=True)
@@ -130,7 +161,7 @@ def create(number: int, name: str, topics: list[str]) -> None:
 
         nb = topic_dir / "Exercises.ipynb"
         if not nb.exists():
-            nb.write_text(exercises_notebook(topic_title))
+            nb.write_text(exercises_notebook(topic_title, codings))
             created.append(nb)
 
     print("\nCreated:")
