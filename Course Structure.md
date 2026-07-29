@@ -10,19 +10,19 @@ their Topic number; see [CLAUDE.md](CLAUDE.md) for the layout.
 
 ## Chapter 1 · Trading Basics → [`lessons/Chapter1 - Trading Basics/`](lessons/Chapter1%20-%20Trading%20Basics/)
 
-| # | Exercise | XP | Type |
-|---|----------|----|------|
-| 1 | What is financial trading | 50 | Video → Topic 1 |
-| 2 | The concept of trading | 50 | Multiple choice |
-| 3 | Plot a time series line chart | 100 | Coding |
-| 4 | Plot a candlestick chart | 100 | Coding |
-| 5 | Getting familiar with your trading data | 50 | Multiple choice |
-| 6 | Resample the data | 100 | Coding |
-| 7 | Plot a return histogram | 100 | Coding |
-| 8 | Calculate and plot SMAs | 100 | Coding |
-| 9 | Financial trading with bt | 50 | Video → Topic 2 |
-| 10 | The bt process | 100 | Coding |
-| 11 | Define and backtest a simple strategy | 100 | Coding |
+| # | Exercise | XP | Type             |
+|---|----------|----|------------------|
+| 1 | What is financial trading | 50 | Video → Topic 1  |
+| 2 | The concept of trading | 50 | Multiple choice  |
+| 3 | Plot a time series line chart | 100 | Coding           |
+| 4 | Plot a candlestick chart | 100 | Coding           |
+| 5 | Getting familiar with your trading data | 50 | Video -> Topic 2 |
+| 6 | Resample the data | 100 | Coding           |
+| 7 | Plot a return histogram | 100 | Coding           |
+| 8 | Calculate and plot SMAs | 100 | Coding           |
+| 9 | Financial trading with bt | 50 | Video → Topic 3  |
+| 10 | The bt process | 100 | Coding           |
+| 11 | Define and backtest a simple strategy | 100 | Coding           |
 
 ## Chapter 2 · Technical Indicators → [`lessons/Chapter2 - Technical Indicators/`](lessons/Chapter2%20-%20Technical%20Indicators/)
 
