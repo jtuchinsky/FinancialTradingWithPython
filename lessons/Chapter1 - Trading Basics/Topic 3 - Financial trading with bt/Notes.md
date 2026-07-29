@@ -1,4 +1,4 @@
-# Topic 2 — Financial trading with bt
+# Topic 3 — Financial trading with bt
 
 > Notes compiled from the DataCamp video lecture (summary + slide content). Code is written in the
 > course's idiom; the figures below are generated PNGs produced with **bt** from the course CSVs.

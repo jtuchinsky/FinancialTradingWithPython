@@ -16,7 +16,7 @@ their Topic number; see [CLAUDE.md](CLAUDE.md) for the layout.
 | 2 | The concept of trading | 50 | Multiple choice  |
 | 3 | Plot a time series line chart | 100 | Coding           |
 | 4 | Plot a candlestick chart | 100 | Coding           |
-| 5 | Getting familiar with your trading data | 50 | Video -> Topic 2 |
+| 5 | Getting familiar with your trading data | 50 | Video → Topic 2  |
 | 6 | Resample the data | 100 | Coding           |
 | 7 | Plot a return histogram | 100 | Coding           |
 | 8 | Calculate and plot SMAs | 100 | Coding           |
