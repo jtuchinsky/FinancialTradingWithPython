@@ -21,6 +21,7 @@ START = "2016-01-04 00:00:00"
 FREQ = "4h"
 MEAN, STD = 1.135, 0.045
 LO, HI = 1.037, 1.255
+SKEW = 0.08   # mild right skew so median (~1.129) sits below the mean (1.135)
 
 
 def make_eurusd_4h(seed: int = 0) -> pd.DataFrame:
@@ -34,9 +35,11 @@ def make_eurusd_4h(seed: int = 0) -> pd.DataFrame:
     for t in range(1, N_ROWS):
         x[t] = x[t - 1] + kappa * (MEAN - x[t - 1]) + sigma * rng.standard_normal()
 
-    # 2. Affine-normalize so mean/std match the target exactly, then clip to range
-    close = MEAN + STD * (x - x.mean()) / x.std()
-    close = np.clip(close, LO, HI)
+    # 2. Standardize, add mild right skew, re-standardize, scale to target, clip
+    z = (x - x.mean()) / x.std()
+    z = z + SKEW * (z ** 2 - 1)          # positive skew leaves the mean ~0
+    z = (z - z.mean()) / z.std()
+    close = np.clip(MEAN + STD * z, LO, HI)
 
     # 3. Derive the other columns
     #    Open = previous close (continuous FX); first bar seeded near close[0]
@@ -46,8 +49,8 @@ def make_eurusd_4h(seed: int = 0) -> pd.DataFrame:
 
     #    Per the source stats, "High" sits slightly below and "Low" slightly above
     #    the close (mean 1.133 vs 1.136) with per-bar noise.
-    high = close - 0.002 + rng.normal(0, 0.006, N_ROWS)
-    low = close + 0.001 + rng.normal(0, 0.006, N_ROWS)
+    high = close - 0.0025 + rng.normal(0, 0.0015, N_ROWS)
+    low = close + 0.0015 + rng.normal(0, 0.0015, N_ROWS)
 
     idx = pd.date_range(start=START, periods=N_ROWS, freq=FREQ, name="Date")
     df = pd.DataFrame(
